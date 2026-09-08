@@ -18,48 +18,64 @@ export function Registro() {
 
   const handleChange = (event) => {
     const { name, type, checked, value } = event.target;
+    const campoValor = type === 'checkbox' ? checked : value;
     setFormData((prevState) => ({
       ...prevState,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: campoValor,
     }));
+
+    // limpiar mensaje de éxito si el usuario edita después de registrar
+    if (mensajeExito) setMensajeExito('');
+
+    // validar el campo en tiempo real
     setErrores((prev) => ({
       ...prev,
-      [name]: '',
+      [name]: validarCampo(name, campoValor),
     }));
   };
 
   const validarFormulario = () => {
     const nuevosErrores = {};
-
-    if (!formData.nombre.trim()) {
-      nuevosErrores.nombre = 'El nombre es obligatorio.';
-    }
-
-    if (!formData.correo.trim()) {
-      nuevosErrores.correo = 'El correo es obligatorio.';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.correo)) {
-      nuevosErrores.correo = 'Ingresa un correo válido.';
-    }
-
-    if (!formData.contrasena) {
-      nuevosErrores.contrasena = 'La contraseña es obligatoria.';
-    } else if (formData.contrasena.length < 6) {
-      nuevosErrores.contrasena = 'La contraseña debe tener al menos 6 caracteres.';
-    }
-
-    if (formData.contrasena !== formData.confirmarContrasena) {
-      nuevosErrores.confirmarContrasena = 'Las contraseñas no coinciden.';
-    }
-
-    if (!formData.rol) {
-      nuevosErrores.rol = 'Debes seleccionar un rol.';
-    }
-
-    if (!formData.aceptarTerminos) {
-      nuevosErrores.aceptarTerminos = 'Debes aceptar los términos.';
-    }
-
+    Object.keys(formData).forEach((campo) => {
+      const mensaje = validarCampo(campo, formData[campo]);
+      if (mensaje) nuevosErrores[campo] = mensaje;
+    });
     return nuevosErrores;
+  };
+
+  const validarCampo = (name, value) => {
+    switch (name) {
+      case 'nombre':
+        {
+          const v = String(value ?? '').trim()
+          if (!v) return 'El nombre es obligatorio.'
+          if (v.length < 2) return 'El nombre debe tener al menos 2 caracteres.'
+          if (v.length > 50) return 'El nombre no puede superar 50 caracteres.'
+          return ''
+        }
+      case 'correo':
+        if (String(value).trim() === '') return 'El correo es obligatorio.';
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return 'Ingresa un correo válido.';
+        return '';
+      case 'contrasena':
+        if (!value) return 'La contraseña es obligatoria.';
+        if (value.length < 6) return 'La contraseña debe tener al menos 6 caracteres.';
+        // también validar confirmarContrasena cuando cambie la contraseña
+        if (formData.confirmarContrasena && value !== formData.confirmarContrasena) return '';
+        return '';
+      case 'confirmarContrasena':
+        if (!value) return 'Debes confirmar la contraseña.';
+        if (value !== formData.contrasena) return 'Las contraseñas no coinciden.';
+        return '';
+      case 'rol':
+        if (!value) return 'Debes seleccionar un rol.';
+        return '';
+      case 'aceptarTerminos':
+        if (!value) return 'Debes aceptar los términos.';
+        return '';
+      default:
+        return '';
+    }
   };
 
   const handleSubmit = (event) => {
